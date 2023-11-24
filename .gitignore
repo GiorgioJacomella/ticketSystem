@@ -1,3 +1,9 @@
+#config information
+sqlDatabaseConfig.csv
+sqlDatabaseConfig.json
+sqlDatabaseConfig.config
+
+
 # Logs
 logs
 *.log
