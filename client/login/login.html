@@ -34,6 +34,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h2 class="card-title text-center mb-4">Login to Your Account</h2>
+                        <div id="alertDiv"></div>
                         <form>
                             <div class="mb-3">
                                 <label for="inputEmail" class="form-label">Email address</label>
@@ -44,7 +45,7 @@
                                 <input type="password" class="form-control" id="inputPassword" required>
                             </div>
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-info">Login</button>
+                                <button id="submitButton" type="submit" class="btn btn-info">Login</button>
                             </div>
                         </form>
                     </div>
@@ -60,5 +61,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./login.js"></script>
 </body>
 </html>

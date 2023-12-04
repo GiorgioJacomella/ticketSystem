@@ -36,7 +36,7 @@ CREATE TABLE ticketElements (
 
 -----Create new user to read, write, update and delete user information from the database
 USE master;
-CREATE LOGIN databaseUser WITH PASSWORD = '12345'; ----Replace with acctual login
+CREATE LOGIN databaseuser WITH PASSWORD = '12345'; ----Replace with acctual login
 
 USE ticketSystem;
 CREATE USER databaseuser FOR LOGIN databaseuser;
