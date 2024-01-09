@@ -29,6 +29,7 @@ CREATE TABLE ticketElements (
     ID INT IDENTITY(1,1) PRIMARY KEY,
     title VARCHAR(255),
     textElement VARCHAR(255),
+	statusElement VARCHAR(255),
     userID INT,
     FOREIGN KEY (userID) REFERENCES userInfo(ID)
 );

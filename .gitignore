@@ -2,7 +2,7 @@
 sqlDatabaseConfig.csv
 sqlDatabaseConfig.json
 sqlDatabaseConfig.config
-
+JWTConfig.json
 
 # Logs
 logs

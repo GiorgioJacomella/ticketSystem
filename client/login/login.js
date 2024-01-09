@@ -20,25 +20,32 @@ function login(event) {
         return;
     }
 
-    //API Call
+    // API Call
     fetch('http://localhost:8080/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
+        credentials: "include",
     })
     .then(response => {
         if (!response.ok) {
             throw new Error('Invalid email or password.');
         }
-        displayAlert('success', 'Login successful!');
+        return response.json();
+    })
+    .then(data => {
+        // Set the cookie with the right value and name for the entire domain
+        const JWT = data.JWT;
+        localStorage.setItem("JWT", JWT)
+        // Redirect to the desired page
+        window.location.href = "../session/AdminPanel.html";
     })
     .catch(error => {
         displayAlert('danger', error.message);
     });
 }
-
 
 function init() {
     console.log("DOMContend loaded");
