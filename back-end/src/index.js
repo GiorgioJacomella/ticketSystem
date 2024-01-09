@@ -162,38 +162,53 @@ app.get('/checkAdmin', (req, res) => {
       return res.status(400).json({ error: 'Invalid token data' });
     }
 
-    // User is authenticated, proceed to check admin status
-    const sql = `SELECT * FROM userInfo WHERE ID = ${userId}`;
-    conn.query(sql, (err, results) => {
+    // Extract IP address from the request
+    const ip = req.ip;
+
+    // First, check if there is a session for this user with the given IP address
+    const sessionSql = `SELECT * FROM userSessions WHERE userID = ${userId} AND ip_address = '${ip}'`;
+    conn.query(sessionSql, (err, sessionResults) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: 'Database error' });
       }
 
-      if (results.length === 0) {
-        return res.status(404).json({ error: 'User not found' });
+      if (sessionResults.length === 0) {
+        return res.status(401).json({ error: 'No valid session for this IP address' });
       }
 
-      // Get the user information
-      const user = results[0];
+      // User has a valid session, proceed to check admin status
+      const sql = `SELECT * FROM userInfo WHERE ID = ${userId}`;
+      conn.query(sql, (err, results) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Database error' });
+        }
 
-      // Check adminState
-      if (user.adminState === 'T') {
-        return res.json({ isAdmin: "Admin" });
-      } else if (user.adminState === 'C') {
-        return res.json({ isAdmin: 'Coworker' });
-      } else if (user.adminState === 'F' || user.adminState === 'f') {
-        return res.json({ isAdmin: 'User' });
-      } else {
-        return res.json({ isAdmin: false });
-      }
+        if (results.length === 0) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Get the user information
+        const user = results[0];
+
+        // Check adminState
+        if (user.adminState === 'T') {
+          return res.json({ isAdmin: "Admin" });
+        } else if (user.adminState === 'C') {
+          return res.json({ isAdmin: 'Coworker' });
+        } else if (user.adminState === 'F' || user.adminState === 'f') {
+          return res.json({ isAdmin: 'User' });
+        } else {
+          return res.json({ isAdmin: false });
+        }
+      });
     });
   } catch (err) {
     // Handle invalid token
     return res.status(401).json({ error: 'Invalid token' });
   }
 });
-
 
 
 // Get ticket info
@@ -248,65 +263,48 @@ app.get('/requestTickets', (req, res) => {
 
 // Write new ticket
 app.post('/newTicket', (req, res) => {
-  const clientCookie = req.cookies.myCookie;
-  if (!clientCookie) {
-    return res.status(401).json({ error: 'Invalid session' });
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
   }
 
-  const clientInfo = JSON.parse(clientCookie);
+  const token = authHeader.split(' ')[1];
 
-  const sql1 = `SELECT s.ID AS session_id, s.session_key, s.ip_address FROM userSessions AS s INNER JOIN userInfo AS u ON s.userID = u.ID WHERE u.email = '${clientInfo.email}';`;
-  conn.query(sql1, (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Database error' });
+  try {
+    const decoded = verifyToken(token);
+    const userId = decoded.id;
+    if (userId === undefined) {
+      return res.status(400).json({ error: 'Invalid token data' });
     }
+    const clientIp = req.ip;
 
-    if (results.length === 0) {
-      return res.status(404).json({ error: 'Session not found' });
-    }
+    const sessionSql = `SELECT * FROM userSessions WHERE userID = ${userId} AND ip_address = '${clientIp}'`;
+    conn.query(sessionSql, (err, sessionResults) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database error' });
+      }
 
-    const sessionData = results[0];
+      if (sessionResults.length === 0) {
+        return res.status(401).json({ error: 'No valid session for this IP address' });
+      }
 
-    // Check session validity
-    if (
-      clientInfo.key == sessionData.session_key &&
-      clientInfo.ipAddress == sessionData.ip_address
-    ) {
-      const userEmail = clientInfo.email;
       const ticketTitle = req.body.ticketTitle;
       const ticketText = req.body.ticketText;
 
-      // retrieve the userID based on the user's email
-      const sqlSelectUserID = `SELECT ID FROM userInfo WHERE email = '${userEmail}'`;
-      conn.query(sqlSelectUserID, (err, results) => {
+      const sql = `INSERT INTO ticketElements (title, textElement, statusElement, userID) VALUES ('${ticketTitle}', '${ticketText}', 'unfinished', ${userId})`;
+      conn.query(sql, (err, results) => {
         if (err) {
           console.error(err);
           return res.status(500).json({ error: 'Database error' });
         }
 
-        if (results.length === 0) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-
-        const userID = results[0].ID;
-
-        // insert the new ticket for the user
-        const sql2 = `INSERT INTO ticketElements (title, textElement, statusElement, userID) VALUES ('${ticketTitle}', '${ticketText}', 'unfinished', '${userID}')`;
-        conn.query(sql2, (err, ticketResults) => {
-          if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Database error' });
-          }
-
-          console.log(ticketResults);
-          res.json({ message: 'Ticket added successfully' });
-        });
+        res.json({ message: 'Ticket added successfully' });
       });
-    } else {
-      return res.status(401).json({ error: 'Invalid session' });
-    }
-  });
+    });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
 });
 
 // Handle server shutdown

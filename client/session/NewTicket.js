@@ -1,98 +1,43 @@
-function renderNav() {
+import { renderNav, renderForm, showModal } from "./renderElements.js";
+
+async function newTicket(event) {
+    event.preventDefault();
+    const ticketTitle = document.getElementById('ticketTitle').value;
+    const ticketText = document.getElementById('ticketDescription').value;
     const JWT = localStorage.getItem("JWT");
 
-    // Always return a promise
-    return new Promise((resolve, reject) => {
-        fetch('http://localhost:8080/checkAdmin', {
-            method: 'GET',
+    try {
+        const response = await fetch('http://localhost:8080/newTicket', {
+            method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + JWT,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            let navBar;
-            if (data.isAdmin === "Admin") {
-              navBar = `<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-                  <a class="navbar-brand" href="#">The Solution</a>
-                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                      <span class="navbar-toggler-icon"></span>
-                  </button>
-                  
-                  <div class="collapse navbar-collapse" id="navbarNav">
-                      <ul class="navbar-nav ml-auto">
-                          <li class="nav-item">
-                              <a class="nav-link" href="#">Home</a>
-                          </li>
-                          <li class="nav-item active">
-                              <a class="nav-link" href="./NewTicket.html">New Ticket <span class="sr-only">(current)</span></a>
-                          </li>
-                          <li class="nav-item">
-                              <a class="nav-link" href="./MyTickets.html">My Tickets</a>
-                          </li>
-                          <li class="nav-item">
-                              <a class="nav-link" href="./AdminPanel.html">Admin Dashboard</a>
-                          </li>
-                      </ul>
-                  </div>
-              </nav>`;
-            } else if (data.isAdmin === 'Coworker' || data.isAdmin === 'User') {
-              navBar = `<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-                  <a class="navbar-brand" href="#">The Solution</a>
-                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                      <span class="navbar-toggler-icon"></span>
-                  </button>
-                  
-                  <div class="collapse navbar-collapse" id="navbarNav">
-                      <ul class="navbar-nav ml-auto">
-                          <li class="nav-item">
-                              <a class="nav-link" href="#">Home</a>
-                          </li>
-                          <li class="nav-item active">
-                              <a class="nav-link" href="./NewTicket.html">New Ticket <span class="sr-only">(current)</span></a>
-                          </li>
-                          <li class="nav-item">
-                              <a class="nav-link" href="./MyTickets.html">My Tickets</a>
-                          </li>
-                      </ul>
-                  </div>
-              </nav>`;
-            } else {
-                // Redirect and resolve with empty string
-                window.location.href = '../login/login.html';
-                resolve('');
-                return;
-            }
-            // Resolve with the navbar
-            resolve(navBar);
-        })
-        .catch(error => {
-            // Reject on error
-            reject(error);
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${JWT}`
+            },
+            body: JSON.stringify({
+                ticketTitle: ticketTitle,
+                ticketText: ticketText
+            })
         });
-    });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Error: ${errorData.error}`);
+        }
+
+        const result = await response.json();
+        console.log('Ticket erfolgreich erstellt:', result);
+
+        // Zeige Erfolgsmeldung
+        showModal('Erfolg', 'Ticket erfolgreich erstellt!');
+        return result;
+    } catch (error) {
+        console.error('Fehler beim Erstellen des Tickets:', error.message);
+        // Zeige Fehlermeldung
+        showModal('Fehler', error.message);
+    }
 }
 
-
-function renderForm() {
-  return `<div class="container mt-4">
-      <form>
-          <div class="form-group">
-              <label for="ticketTitle">Ticket Title</label>
-              <input type="text" class="form-control" id="ticketTitle" placeholder="Enter ticket title">
-          </div>
-          <div class="form-group">
-              <label for="ticketDescription">Ticket Description</label>
-              <textarea class="form-control" id="ticketDescription" rows="3" placeholder="Enter ticket description"></textarea>
-          </div>
-          <br>
-          <button type="submit" class="btn btn-primary">Submit</button>
-      </form>
-  </div>`;
-}
-
-// render whole page
+// Render New Ticket Page
 function renderPage() {
     return renderNav()
         .then(navBar => {
@@ -102,14 +47,18 @@ function renderPage() {
 }
 
 function init() {
-    renderPage()
-        .then(page => {
+    try {
+        renderPage().then(page => {
             let mainView = document.getElementById("mainView");
             mainView.innerHTML = page;
-        })
-        .catch(error => {
-            console.error("Error initializing page:", error);
+            let submitNewTicket = document.getElementById("submitNewTicket");
+            submitNewTicket.addEventListener('click', newTicket);
         });
+    } catch (error) {
+        console.error("Error initializing page:", error);
+    }
 }
+
+
 
 document.addEventListener("DOMContentLoaded", init);

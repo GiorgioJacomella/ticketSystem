@@ -40,7 +40,7 @@ function login(event) {
         const JWT = data.JWT;
         localStorage.setItem("JWT", JWT)
         // Redirect to the desired page
-        window.location.href = "../session/AdminPanel.html";
+        window.location.href = "../session/Dashboard.html";
     })
     .catch(error => {
         displayAlert('danger', error.message);
