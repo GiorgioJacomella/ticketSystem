@@ -210,56 +210,37 @@ app.get('/checkAdmin', (req, res) => {
   }
 });
 
-
 // Get ticket info
 app.get('/requestTickets', (req, res) => {
-  const clientCookie = req.cookies.myCookie;
-
-  if (!clientCookie) {
-    return res.status(401).json({ error: 'Invalid session' });
+  // Extract the token from the Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized access' });
   }
+  const token = authHeader.split(' ')[1];
 
-  const clientInfo = JSON.parse(clientCookie);
+  try {
+      // Verify the token and extract the user ID
+      const decoded = verifyToken(token);
+      const userId = decoded.id;
 
-  const sql1 = `SELECT s.ID AS session_id, s.session_key, s.ip_address FROM userSessions AS s INNER JOIN userInfo AS u ON s.userID = u.ID WHERE u.email = '${clientInfo.email}';`;
-  conn.query(sql1, (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Database error' });
-    }
-
-    if (results.length === 0) {
-      return res.status(404).json({ error: 'Session not found' });
-    }
-
-    const sessionData = results[0];
-
-    // Check session validity
-    if (
-      clientInfo.key == sessionData.session_key &&
-      clientInfo.ipAddress == sessionData.ip_address
-    ) {
-      // Code if session is valid
-      const sql2 = `SELECT te.ID AS TicketID, te.title AS TicketTitle, te.textElement AS TicketText FROM userInfo AS ui INNER JOIN ticketElements AS te ON ui.ID = te.userID WHERE ui.email = '${clientInfo.email}';`;
-      conn.query(sql2, (err, results) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (results.length === 0) {
-          return res.status(404).json({ error: 'No tickets found' });
-        }
-
-        // Return ticket info
-        const tickets = results;
-        return res.status(200).json({ tickets });
+      // Query the database for tickets associated with the user ID
+      const sqlQuery = `SELECT * FROM ticketElements WHERE userID = ${userId}`;
+      conn.query(sqlQuery, (err, results) => {
+          if (err) {
+              console.error(err);
+              return res.status(500).json({ error: 'Database error' });
+          }
+          console.log(results);
+          res.json({ tickets: results });
       });
-    } else {
-      return res.status(401).json({ error: 'Invalid session' });
-    }
-  });
+  } catch (error) {
+      // Handle token verification errors
+      console.error(error);
+      return res.status(403).json({ error: 'Invalid or expired token' });
+  }
 });
+
 
 // Write new ticket
 app.post('/newTicket', (req, res) => {

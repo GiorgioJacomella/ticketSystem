@@ -106,7 +106,7 @@ export function showModal(title, message) {
                 ${message}
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Schließen</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -116,3 +116,45 @@ export function showModal(title, message) {
     document.body.innerHTML += modalHtml;
     $('#alertModal').modal('show');
 }
+
+export function renderMyTicketsList() {
+    const JWT = localStorage.getItem("JWT");
+
+    // Always return a promise
+    return new Promise((resolve, reject) => {
+        fetch('http://localhost:8080/requestTickets', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${JWT}`
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data || !data.tickets) {
+                console.log("No data");
+                return;
+            }
+
+            // Create tickets list inside a Bootstrap card and center it using d-flex and justify-content-center classes
+            let ticketsList = `
+            <br>
+                <div class="d-flex justify-content-center">
+                    <div class="card" style="width: 18rem;">
+                        <ul class="list-group list-group-flush">`;
+            data.tickets.forEach(ticket => {
+                ticketsList += `<li class="list-group-item">Title: ${ticket.title} <br> Description: ${ticket.textElement}</li>`;
+            });
+            ticketsList += `</ul>
+                    </div>
+                </div>`;
+
+            // Resolve with the centered tickets list
+            resolve(ticketsList);
+        })
+        .catch(error => {
+            console.error(error);
+        });
+    });
+}
+

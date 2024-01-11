@@ -28,10 +28,10 @@ async function newTicket(event) {
         console.log('Ticket erfolgreich erstellt:', result);
 
         // Zeige Erfolgsmeldung
-        showModal('Erfolg', 'Ticket erfolgreich erstellt!');
+        showModal('Success', 'Ticket created Successfully!');
         return result;
     } catch (error) {
-        console.error('Fehler beim Erstellen des Tickets:', error.message);
+        console.error('Error Occured:', error.message);
         // Zeige Fehlermeldung
         showModal('Fehler', error.message);
     }
