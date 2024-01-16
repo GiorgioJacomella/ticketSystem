@@ -288,6 +288,67 @@ app.post('/newTicket', (req, res) => {
   }
 });
 
+//Delete Ticket
+app.delete('/deleteTicket', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = verifyToken(token);
+    const userId = decoded.id;
+
+    const ticketId = req.body.ticketId;
+    if (!ticketId) {
+      return res.status(400).json({ error: 'Ticket ID is required' });
+    }
+
+    // Query to check if the user is the owner of the ticket or an admin
+    const checkSql = `SELECT * FROM ticketElements WHERE ID = ${ticketId}`;
+    conn.query(checkSql, (err, ticketResults) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (ticketResults.length === 0) {
+        return res.status(404).json({ error: 'Ticket not found' });
+      }
+
+      const ticketOwner = ticketResults[0].userID;
+
+      // Check if the user is an admin
+      const adminCheckSql = `SELECT * FROM userInfo WHERE ID = ${userId}`;
+      conn.query(adminCheckSql, (adminErr, userResults) => {
+        if (adminErr) {
+          console.error(adminErr);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        const isAdmin = userResults[0].adminState === 'T';
+        if (userId === ticketOwner || isAdmin) {
+          // Delete the ticket
+          const deleteSql = `DELETE FROM ticketElements WHERE ID = ${ticketId}`;
+          conn.query(deleteSql, (deleteErr, deleteResults) => {
+            if (deleteErr) {
+              console.error(deleteErr);
+              return res.status(500).json({ error: 'Database error' });
+            }
+            res.json({ message: 'Ticket deleted successfully' });
+          });
+        } else {
+          return res.status(403).json({ error: 'Unauthorized to delete this ticket' });
+        }
+      });
+    });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+
 // Handle server shutdown
 process.on('SIGINT', () => {
   console.log('Closing the server and the database connection.');

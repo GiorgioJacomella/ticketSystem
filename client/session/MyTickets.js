@@ -1,6 +1,5 @@
-import { renderNav, renderMyTicketsList } from "./renderElements.js";
+import { renderNav, renderMyTicketsList, showFormModal} from "./renderElements.js";
 
-// Render MyTickets Page including Navbar and Tickets List
 function renderPage() {
     return renderNav().then(navBar => {
         return renderMyTicketsList().then(ticketsList => {

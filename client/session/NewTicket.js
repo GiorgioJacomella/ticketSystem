@@ -1,4 +1,4 @@
-import { renderNav, renderForm, showModal } from "./renderElements.js";
+import { renderNav, renderForm, showMessageModal } from "./renderElements.js";
 
 async function newTicket(event) {
     event.preventDefault();
@@ -28,12 +28,12 @@ async function newTicket(event) {
         console.log('Ticket erfolgreich erstellt:', result);
 
         // Zeige Erfolgsmeldung
-        showModal('Success', 'Ticket created Successfully!');
+        showMessageModal('Success', 'Ticket created Successfully!');
         return result;
     } catch (error) {
         console.error('Error Occured:', error.message);
         // Zeige Fehlermeldung
-        showModal('Fehler', error.message);
+        showMessageModal('Fehler', error.message);
     }
 }
 
