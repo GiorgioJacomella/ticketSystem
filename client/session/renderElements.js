@@ -148,6 +148,49 @@ async function deleteTicket(ticketId, JWT) {
     }
 }
 
+// API Update Ticket
+async function updateTicket(ticketId, updatedTitle, updatedText, authToken) {
+    if (!authToken) {
+      console.error('Authentication token is missing.');
+      return;
+    }
+  
+    const apiUrl = `http://localhost:8080/updateTicket/${ticketId}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    };
+  
+    const requestBody = {};
+    if (updatedTitle) {
+      requestBody.updatedTitle = updatedTitle;
+    }
+    if (updatedText) {
+      requestBody.updatedText = updatedText;
+    }
+  
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Error: ${errorData.error}`);
+      }
+  
+      const result = await response.json();
+      console.log(result.message);
+      console.log('Ticket successfully updated:', result);
+      showMessageModal('Success', 'Ticket updated successfully!');
+      return result;
+    } catch (error) {
+        console.error('Error Occurred:', error.message);
+        showMessageModal('Error', error.message);
+    }
+  }
 
 ///Render Modal to edit ticket
 export function showFormModal(ticket) {
@@ -164,11 +207,11 @@ export function showFormModal(ticket) {
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="titleInput">Title</label>
-                        <input type="text" class="form-control" id="titleInput" placeholder="Enter title" value="${ticket.title}">
+                        <input type="text" id="title${ticket.ID}" class="form-control" id="titleInput" placeholder="Enter title" value="${ticket.title}">
                     </div>
                     <div class="form-group">
                         <label for="descriptionTextarea">Description</label>
-                        <textarea class="form-control" id="descriptionTextarea" rows="3" placeholder="Enter description">${ticket.textElement}</textarea>
+                        <textarea class="form-control" id="text${ticket.ID}" id="descriptionTextarea" rows="3" placeholder="Enter description">${ticket.textElement}</textarea>
                     </div>
                     <div class="form-group">
                         <label for="statusSelect">Status</label>
@@ -180,7 +223,7 @@ export function showFormModal(ticket) {
                     <div class="modal-footer d-flex justify-content-between">
                     <button type="button" id="deleteTicket${ticket.ID}" class="btn btn-danger" data-dismiss="modal">Delete</button>
                         <div>
-                            <button type="button" class="btn btn-primary" data-dismiss="modal">Save</button>
+                            <button type="button" id="updateTicket${ticket.ID}" class="btn btn-primary" data-dismiss="modal">Update</button>
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                         </div>
                     </div>
@@ -192,10 +235,17 @@ export function showFormModal(ticket) {
     const JWT = localStorage.getItem("JWT");
     document.body.innerHTML += modalHtml;
     $(`#formModal${ticket.ID}`).modal('show');
+
     const deleteButton = document.getElementById(`deleteTicket${ticket.ID}`);
     deleteButton.addEventListener('click', () => deleteTicket(ticket.ID, JWT));
-}
 
+    const updateButton = document.getElementById(`updateTicket${ticket.ID}`);
+    updateButton.addEventListener('click', function () {
+        const updatedTitle = document.getElementById(`title${ticket.ID}`).value;
+        const updatedText = document.getElementById(`text${ticket.ID}`).value;
+        updateTicket(ticket.ID, updatedTitle, updatedText, JWT);
+    });
+}
 
 
 export function renderMyTicketsList() {
@@ -239,7 +289,6 @@ export function renderMyTicketsList() {
             document.addEventListener('click', function(event) {
                 if (event.target && event.target.classList.contains('edit-button')) {
                     const ticket = JSON.parse(event.target.getAttribute('data-ticket'));
-                    console.log("Show modal");
                     showFormModal(ticket);
                 }
             });

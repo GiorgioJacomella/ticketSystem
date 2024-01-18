@@ -231,7 +231,6 @@ app.get('/requestTickets', (req, res) => {
               console.error(err);
               return res.status(500).json({ error: 'Database error' });
           }
-          console.log(results);
           res.json({ tickets: results });
       });
   } catch (error) {
@@ -287,6 +286,85 @@ app.post('/newTicket', (req, res) => {
     return res.status(401).json({ error: 'Invalid token' });
   }
 });
+
+// Update Ticket
+app.put('/updateTicket/:ticketId', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = verifyToken(token);
+    const userId = decoded.id;
+
+    const ticketId = req.params.ticketId;
+    if (!ticketId) {
+      return res.status(400).json({ error: 'Ticket ID is required' });
+    }
+
+    // Query to check if the user is the owner of the ticket or an admin
+    const checkSql = 'SELECT userID FROM ticketElements WHERE ID = ?';
+    conn.query(checkSql, [ticketId], (err, ticketResults) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (ticketResults.length === 0) {
+        return res.status(404).json({ error: 'Ticket not found' });
+      }
+
+      const ticketOwner = ticketResults[0].userID;
+
+      // Check if the user is an admin
+      const adminCheckSql = 'SELECT adminState FROM userInfo WHERE ID = ?';
+      conn.query(adminCheckSql, [userId], (adminErr, userResults) => {
+        if (adminErr) {
+          console.error(adminErr);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        const isAdmin = userResults[0].adminState === 'T';
+        if (userId === ticketOwner || isAdmin) {
+          const { updatedTitle, updatedText, updatedStatus } = req.body;
+
+          if (!updatedTitle && !updatedText && !updatedStatus) {
+            return res.status(400).json({ error: 'Nothing to update' });
+          }
+
+          const successMessages = [];
+
+          const updates = [];
+          if (updatedTitle) updates.push(`title = '${updatedTitle}'`);
+          if (updatedText) updates.push(`textElement = '${updatedText}'`);
+          if (updatedStatus) updates.push(`statusElement = '${updatedStatus}'`);
+
+          const updateSql = `UPDATE ticketElements SET ${updates.join(', ')} WHERE ID = ?`;
+          conn.query(updateSql, [ticketId], (updateErr, updateResult) => {
+            if (updateErr) {
+              console.error(updateErr);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (updateResult.affectedRows === 0) {
+              return res.status(400).json({ error: 'No updates were applied' });
+            }
+
+            successMessages.push('Ticket updated successfully');
+            res.status(200).json({ message: successMessages });
+          });
+        } else {
+          return res.status(403).json({ error: 'Unauthorized to update this ticket' });
+        }
+      });
+    });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
 
 //Delete Ticket
 app.delete('/deleteTicket', (req, res) => {
