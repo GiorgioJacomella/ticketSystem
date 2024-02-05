@@ -34,6 +34,10 @@ CREATE TABLE ticketElements (
     FOREIGN KEY (userID) REFERENCES userInfo(ID)
 );
 
+--Create Serviceuser with administrator possibilities, password and username are both "admin"
+INSERT INTO userInfo (fullName, phoneNr, email, pwdHash, adminState) VALUES ('admin', '000', 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'A')
+
+
 
 -----Create new user to read, write, update and delete user information from the database
 USE master;

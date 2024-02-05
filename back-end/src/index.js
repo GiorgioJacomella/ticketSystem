@@ -193,7 +193,7 @@ app.get('/checkAdmin', (req, res) => {
         const user = results[0];
 
         // Check adminState
-        if (user.adminState === 'T') {
+        if (user.adminState === 'A') {
           return res.json({ isAdmin: "Admin" });
         } else if (user.adminState === 'C') {
           return res.json({ isAdmin: 'Coworker' });
@@ -326,7 +326,7 @@ app.put('/updateTicket/:ticketId', (req, res) => {
           return res.status(500).json({ error: 'Database error' });
         }
 
-        const isAdmin = userResults[0].adminState === 'T';
+        const isAdmin = userResults[0].adminState === 'A';
         if (userId === ticketOwner || isAdmin) {
           const { updatedTitle, updatedText, updatedStatus } = req.body;
 
@@ -405,7 +405,7 @@ app.delete('/deleteTicket', (req, res) => {
           return res.status(500).json({ error: 'Database error' });
         }
 
-        const isAdmin = userResults[0].adminState === 'T';
+        const isAdmin = userResults[0].adminState === 'A';
         if (userId === ticketOwner || isAdmin) {
           // Delete the ticket
           const deleteSql = `DELETE FROM ticketElements WHERE ID = ${ticketId}`;
@@ -423,6 +423,47 @@ app.delete('/deleteTicket', (req, res) => {
     });
   } catch (err) {
     return res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+
+// Get All Tickets (Admin only)
+app.get('/getAllTickets', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized access' });
+  }
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = verifyToken(token);
+    const userId = decoded.id;
+
+    // Admin check
+    const adminCheckSql = `SELECT adminState FROM userInfo WHERE ID = ${userId}`;
+    conn.query(adminCheckSql, (adminErr, adminResults) => {
+      if (adminErr) {
+        console.error(adminErr);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (adminResults[0].adminState !== 'A') {
+        return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+      }
+
+      const sqlQuery = 'SELECT t.*, u.fullName AS userName FROM ticketElements t JOIN userInfo u ON t.userID = u.ID';
+
+      conn.query(sqlQuery, (err, results) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+        res.json({ tickets: results });
+      });
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(403).json({ error: 'Invalid or expired token' });
   }
 });
 
