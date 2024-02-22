@@ -27,6 +27,7 @@ A step-by-step series of examples that tell you how to get a development environ
    cd ticketSystem/back-end
    npm install
    ```
+   If needed Install all Modules(SQL Library, Express...)
 3. **Setup DB(In my case i used MS SQL)**
    
    Execute the querry at ticketSystem/database/setup.sql, The default Admin user for the Ticketsystem is "admin", with the password "admin".
